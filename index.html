@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Videy - Free and Simple Video Hosting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="js/jquery.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <meta name="6774a4677ae3199db298f6b90c6b47c376d40d86" content="6774a4677ae3199db298f6b90c6b47c376d40d86">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <a href="/" class="logo">videy</a>
+        <button class="btn-upload-header" onclick="handleClick();">Upload</button>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          Upload your videos
+          <span class="hero-subtitle-text">and share</span>
+        </h1>
+        <p class="hero-description">Free and simple video hosting.</p>
+        <button class="btn-upload-main" onclick="handleClick();">Upload Video</button>
+      </div>
+    </main>
+    
+      <form action="https://videy.co/api/upload" method="POST" id="form">
+        <input name="file" type="file" id="selectedFile" class="clickListenerFile" style="display: none;">
+      </form>
+      <div class="upload-error" style="display: none"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-content">
+        <a href="#" class="footer-link">Terms of Service</a>
+        <a href="#" class="footer-link">Report Abuse</a>
+      </div>
+    </footer>
+  </div>
+    <script>
+       let target = document.documentElement;
+       let body = document.body;
+       let fileInput = document.getElementById("selectedFile");
+       target.addEventListener('dragover', (e) => {
+           if ($(".clickListenerFile")[0]) {
+               e.preventDefault();
+               body.classList.add('dragging');
+           }
+       });
+       target.addEventListener('dragleave', () => {
+           body.classList.remove('dragging');
+       });
+       target.addEventListener('drop', (e) => {
+           if ($(".clickListenerFile")[0]) {
+               e.preventDefault();
+               body.classList.remove('dragging');
+               fileInput.files = e.dataTransfer.files;
+               upload();
+           }
+       });
+       window.addEventListener('paste', e => {
+           fileInput.files = e.clipboardData.files;
+           upload();
+       });
+       document.getElementsByClassName("clickListenerFile")[0].onchange = function() {
+           upload();
+       }
+       function handleClick() {
+           if ($(".clickListenerFile")[0]) {
+               $(".clickListenerFile").click();
+           }
+       }
+       const mimeMap = {
+           'image/jpeg': 'jpg',
+           'image/jpg': 'jpg',
+           'image/png': 'png',
+           'image/gif': 'gif',
+           'image/webp': 'webp',
+           'image/bmp': 'bmp',
+           'image/tiff': 'tiff',
+           'image/heic': 'heic',
+           'image/avif': 'avif',
+           'video/mp4': 'mp4',
+           'video/quicktime': 'mov',
+           'video/webm': 'webm',
+           'video/x-msvideo': 'avi',
+           'video/x-matroska': 'mkv',
+           'audio/mpeg': 'mp3',
+           'audio/ogg': 'ogg',
+           'audio/wav': 'wav',
+           'audio/aac': 'aac',
+           'audio/webm': 'weba'
+       };
+       function upload() {
+           var fileInput = $("#selectedFile")[0].files[0];
+           var errorDiv = $(".upload-error");
+           errorDiv.hide().text('');
+           if (fileInput) {
+               if (fileInput.type !== 'video/mp4' && fileInput.type !== 'video/quicktime') {
+                   if (mimeMap[fileInput.type]) {
+                       $("#fileTypeModal").show();
+                   } else {
+                       $("#unsupportedModal").show();
+                   }
+                   $("#selectedFile").val(''); 
+                   return;
+               }
+               var maxFileSize = 100 * 1024 * 1024;
+               if (fileInput.size > maxFileSize) {
+                   errorDiv.text("Error: too large, please upload a file less than 100MB").show();
+                   return;
+               }
+               var formData = new FormData($('form')[0]);
+               $("#selectedFile").removeClass("clickListenerFile");
+               $(".box-upload").addClass("animate");
+                       $(".box-upload").html("Uploading...");
+               var visitorId = localStorage.getItem('visitorId') || "";
+               $.ajax({
+                   xhr: function() {
+                       var xhr = new window.XMLHttpRequest();
+                       xhr.upload.addEventListener("progress", function(evt) {
+                           if (evt.lengthComputable) {
+                               var percentComplete = evt.loaded / evt.total;
+                               percentComplete = parseInt(percentComplete * 100);
+                               $(".box-upload").html(percentComplete + "%");
+                               if (percentComplete === 100) {
+                                   $(".box-upload").html("Processing");
+                               }
+                           }
+                       }, false);
+                       return xhr;
+                   },
+                   url: `https://videy.co/api/upload?visitorId=${encodeURIComponent(visitorId)}`,
+                   type: 'POST',
+                   context: this,
+                   data: formData,
+                   cache: false,
+                   contentType: false,
+                   processData: false,
+                   success: function(result) {
+                        localStorage.setItem('uploader', true);
+                        const ORIGIN = "";
+                        const localLink = ORIGIN + "/v/?id=" + encodeURIComponent(result.id);
+                        window.location.href = localLink;
+                   },
+                   error: function() {
+                       $(".box-upload").html("Upload a Video");
+                       $(".box-upload").removeClass("animate");
+                   }
+               });
+           }
+       }
+    </script>
+    <script>
+      $(document).ready(function() {
+          function generateUUID() {
+              return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                  var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                  return v.toString(16);
+              });
+          }
+          if (!localStorage.getItem('visitorId')) {
+              localStorage.setItem('visitorId', generateUUID());
+          }
+          $('.modal-close').on('click', function() {
+              $(this).closest('.modal').hide();
+          });
+      });
+    </script>
+  <script type="module" src="main.ts"></script>
+
+
+</body></html>
